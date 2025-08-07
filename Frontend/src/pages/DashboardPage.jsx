@@ -32,6 +32,19 @@ const DashboardPage = () => {
     setCourses(prevCourses => [newCourse, ...prevCourses]);
   };
 
+  // Function to handle the deletion of a course
+  const handleDeleteCourse = async (courseId) => {
+    try {
+        await api.delete(`/courses/${courseId}`);
+        // Filter out the deleted course from the state to update the UI
+        setCourses(prevCourses => prevCourses.filter(course => course._id !== courseId));
+    } catch (err) {
+        // Optionally, show an error message to the user
+        console.error("Failed to delete course:", err);
+        alert("Could not delete the course. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -49,7 +62,11 @@ const DashboardPage = () => {
                 {courses.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {courses.map(course => (
-                      <CourseCard key={course._id} course={course} />
+                      <CourseCard 
+                        key={course._id} 
+                        course={course} 
+                        onDelete={handleDeleteCourse} // Pass the delete handler down
+                      />
                     ))}
                   </div>
                 ) : (

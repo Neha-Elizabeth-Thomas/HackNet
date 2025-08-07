@@ -3,6 +3,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import apiRoutes from './routes/index.js'; // Import the central router
+import { startCronJobs } from './services/cronService.js';
 
 const app = express();
 
@@ -33,4 +34,7 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  startCronJobs(); // <-- Start the scheduled jobs
+});

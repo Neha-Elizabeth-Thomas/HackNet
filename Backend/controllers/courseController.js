@@ -1,4 +1,5 @@
 import Course from '../models/Course.js';
+import Syllabus from '../models/Syllabus.js'; // Import the Syllabus model
 
 /**
  * @description Get all courses for the logged-in faculty
@@ -42,4 +43,39 @@ export const getCourseById = async (req, res) => {
     console.error('Error fetching course by ID:', error);
     res.status(500).json({ message: 'Server Error' });
   }
+};
+
+
+/**
+ * @description Delete a course
+ * @route   DELETE /api/courses/:id
+ * @access  Private
+ */
+export const deleteCourse = async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        // Security check: Ensure the user deleting the course is the owner
+        if (course.facultyId.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'User not authorized to delete this course' });
+        }
+
+        // Delete the associated syllabus first
+        if (course.syllabusId) {
+            await Syllabus.findByIdAndDelete(course.syllabusId);
+        }
+
+        // Then delete the course itself
+        await course.deleteOne();
+
+        res.json({ message: 'Course removed successfully' });
+
+    } catch (error) {
+        console.error('Error deleting course:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
 };

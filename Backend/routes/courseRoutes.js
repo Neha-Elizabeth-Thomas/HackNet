@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllCourses, getCourseById } from '../controllers/courseController.js';
+import { getAllCourses, getCourseById, deleteCourse } from '../controllers/courseController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -7,10 +7,12 @@ const router = express.Router();
 // Apply the 'protect' middleware to all routes in this file
 router.use(protect);
 
-// Route to get all courses for the logged-in user
+// Route to get all courses and create a new course
 router.route('/').get(getAllCourses);
 
-// Route to get a specific course by its ID
-router.route('/:id').get(getCourseById);
+// Route to get, update, and delete a specific course
+router.route('/:id')
+    .get(getCourseById)
+    .delete(deleteCourse); // <-- Add the delete route
 
 export default router;

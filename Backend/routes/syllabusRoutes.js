@@ -1,5 +1,8 @@
 import express from 'express';
-import { uploadAndProcessSyllabus } from '../controllers/syllabusController.js';
+import {
+  uploadAndProcessSyllabus,
+  updateTopicStatus // <-- Import the new controller function
+} from '../controllers/syllabusController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import upload from '../middleware/upload.js';
 
@@ -14,5 +17,18 @@ router.post(
   upload.single('syllabusFile'), // Then, process the file upload
   uploadAndProcessSyllabus // Finally, run the controller logic
 );
+
+
+// --- Start of Added Block ---
+// @route   PUT /api/syllabus/:syllabusId/topics/:topicId
+// @desc    Update a topic's completion status
+// @access  Private
+router.put(
+    '/:syllabusId/topics/:topicId',
+    protect, // Protect this route as well
+    updateTopicStatus
+);
+// --- End of Added Block ---
+
 
 export default router;

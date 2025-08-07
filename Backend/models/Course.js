@@ -10,7 +10,6 @@ const courseSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    unique: true,
   },
   facultyId: {
     type: mongoose.Schema.Types.ObjectId,
