@@ -7,7 +7,15 @@ import apiRoutes from './routes/index.js'; // Import the central router
 const app = express();
 
 // Middleware
-app.use(cors()); // Allows cross-origin requests from our frontend
+const corsOptions = {
+  origin: 'http://localhost:5173', // Your frontend's address
+  optionsSuccessStatus: 200 ,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // If using cookies/auth tokens
+};
+
+app.use(cors(corsOptions));
 app.use(express.json()); // Allows the server to accept JSON in the request body
 
 // --- Database Connection ---

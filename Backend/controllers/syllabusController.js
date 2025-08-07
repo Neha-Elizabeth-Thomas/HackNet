@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import PDFParser from 'pdf2json'; // <-- Changed from pdf-parse
+import pdf from 'pdf-parse'; // Switched back to pdf-parse
 import Course from '../models/Course.js';
 import Syllabus from '../models/Syllabus.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -36,7 +36,8 @@ export const uploadAndProcessSyllabus = async (req, res) => {
     }
 
     // 2. Prepare the prompt and file for Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }); 
+    
     let userPrompt = `
         You are an expert academic scheduler. Analyze the content of the provided syllabus file (image or PDF).
         Your task is to:
@@ -64,22 +65,14 @@ export const uploadAndProcessSyllabus = async (req, res) => {
         imageParts.push(fileToGenerativePart(req.file.buffer, req.file.mimetype));
     } else if (req.file.mimetype === 'application/pdf') {
         // --- Start of changed block ---
-        // Use pdf2json to extract text from the PDF buffer
-        const pdfText = await new Promise((resolve, reject) => {
-            const pdfParser = new PDFParser(this, 1);
-            // On error, reject the promise
-            pdfParser.on("pdfParser_dataError", errData => {
-                console.error("pdf2json error:", errData.parserError);
-                reject(new Error("Error parsing PDF file."));
-            });
-            // On success, resolve the promise with the extracted text
-            pdfParser.on("pdfParser_dataReady", () => {
-                resolve(pdfParser.getRawTextContent());
-            });
-            // Start parsing the buffer
-            pdfParser.parseBuffer(req.file.buffer);
-        });
-        // Add the extracted text to the prompt for Gemini
+        // Use pdf-parse to extract text. It's simpler and more direct.
+        const data = await pdf(req.file.buffer);
+        const pdfText = data.text;
+
+        console.log("--- EXTRACTED PDF TEXT ---");
+        console.log(pdfText);
+        console.log("--- END OF EXTRACTED TEXT ---");
+
         userPrompt += `\n\nHere is the extracted text from the PDF:\n---\n${pdfText}\n---`;
         // --- End of changed block ---
     }
@@ -87,31 +80,29 @@ export const uploadAndProcessSyllabus = async (req, res) => {
     // 3. Call the Gemini API
     const result = await model.generateContent([userPrompt, ...imageParts]);
     const response = await result.response;
-    const jsonResponseText = response.text();
+    
+    const jsonResponseText = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
     const structuredData = JSON.parse(jsonResponseText);
 
     // 4. Save the structured data to the database
-    // Create the Course
     const newCourse = await Course.create({
       courseName: structuredData.courseName || courseName,
       courseCode: structuredData.courseCode || courseCode,
-      facultyId: req.user._id, // From the 'protect' middleware
+      facultyId: req.user._id,
     });
 
-    // Create the Syllabus topics with unique IDs
-    const topicsWithIds = structuredData.topics.map(topic => ({
+    // Add a check to ensure structuredData.topics is an array before mapping
+    const topicsWithIds = Array.isArray(structuredData.topics) ? structuredData.topics.map(topic => ({
         ...topic,
         topicId: uuidv4(),
-        description: topic.title, // Default description
-    }));
+        description: topic.title,
+    })) : [];
 
-    // Create the Syllabus
     const newSyllabus = await Syllabus.create({
         courseId: newCourse._id,
         topics: topicsWithIds,
     });
 
-    // Link syllabus back to the course
     newCourse.syllabusId = newSyllabus._id;
     await newCourse.save();
 
@@ -124,5 +115,44 @@ export const uploadAndProcessSyllabus = async (req, res) => {
   } catch (error) {
     console.error('Syllabus Processing Error:', error);
     res.status(500).json({ message: 'Server Error: Could not process syllabus.' });
+  }
+};
+
+/**
+ * @description Update the completion status of a topic
+ * @route   PUT /api/syllabus/:syllabusId/topics/:topicId
+ * @access  Private
+ */
+export const updateTopicStatus = async (req, res) => {
+  try {
+    const { syllabusId, topicId } = req.params;
+    const { isCompleted } = req.body;
+
+    const syllabus = await Syllabus.findById(syllabusId);
+
+    if (!syllabus) {
+      return res.status(404).json({ message: 'Syllabus not found' });
+    }
+
+    const course = await Course.findById( syllabus.courseId);
+    if (course.facultyId.toString() !== req.user._id.toString()) {
+        return res.status(401).json({ message: 'User not authorized to update this syllabus' });
+    }
+
+    const topic = syllabus.topics.find(t => t.topicId === topicId);
+
+    if (!topic) {
+        return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    topic.isCompleted = isCompleted;
+
+    await syllabus.save();
+
+    res.json({ message: 'Topic status updated successfully', syllabus });
+
+  } catch (error) {
+    console.error('Error updating topic status:', error);
+    res.status(500).json({ message: 'Server Error' });
   }
 };
