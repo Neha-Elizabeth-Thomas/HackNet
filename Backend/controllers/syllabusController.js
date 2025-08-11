@@ -30,21 +30,29 @@ export const uploadAndProcessSyllabus = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded.' });
     }
-    const { courseName, courseCode, startDate } = req.body;
-    if (!courseName || !courseCode || !startDate) {
-        return res.status(400).json({ message: 'Missing course name, code, or start date.' });
+    // --- Start of Changed Block ---
+    const { courseName, courseCode, startDate, weeklySchedule } = req.body;
+    if (!courseName || !courseCode || !startDate || !weeklySchedule) {
+        return res.status(400).json({ message: 'Missing required course details or weekly schedule.' });
     }
+    const parsedSchedule = JSON.parse(weeklySchedule);
+    // --- End of Changed Block ---
 
     // 2. Prepare the prompt and file for Gemini
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }); 
     
     // --- Start of Changed Block ---
-    // The prompt is simplified to focus only on extracting topics and creating a schedule.
+    // Create a dynamic schedule string for the prompt
+    const scheduleString = Object.entries(parsedSchedule)
+      .map(([day, hours]) => `${day.charAt(0).toUpperCase() + day.slice(1)}: ${hours} hours`)
+      .join(', ');
+
+    // The prompt is updated to use the dynamic weekly schedule.
     const userPrompt = `
         You are an expert academic scheduler. Analyze the content of the provided syllabus file (image or PDF).
         Your task is to:
-        1. Extract all modules and the topics within each module, including the lecture hours for each topic.
-        2. Based on a course start date of ${startDate}, and assuming 3 classes per week (Monday, Wednesday, Friday), generate a logical teaching schedule with a specific 'targetDate' for each topic.
+        1. Extract all modules and the topics within each module, including the 'lectureHours' for each topic.
+        2. Based on a course start date of ${startDate}, and the following weekly teaching schedule: ${scheduleString}, generate a logical teaching schedule with a specific 'targetDate' for each topic.
         3. Return ONLY a single, clean JSON object. Do not include any text before or after the JSON object. Do not use markdown backticks.
         The JSON object must have this exact structure:
         {
@@ -70,14 +78,12 @@ export const uploadAndProcessSyllabus = async (req, res) => {
     const structuredData = JSON.parse(jsonResponseText);
 
     // 4. Save the structured data to the database
-    // --- Start of Changed Block ---
-    // Always use the courseName and courseCode from the request body for consistency.
     const newCourse = await Course.create({
       courseName: courseName,
       courseCode: courseCode,
       facultyId: req.user._id,
+      weeklySchedule: parsedSchedule, // Save the schedule to the new course
     });
-    // --- End of Changed Block ---
 
     const topicsWithIds = Array.isArray(structuredData.topics) ? structuredData.topics.map(topic => ({
         ...topic,

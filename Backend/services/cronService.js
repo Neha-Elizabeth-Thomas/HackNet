@@ -61,7 +61,7 @@ const checkSyllabusDeadlines = async () => {
 
 // Schedule the job to run once every day at 8:00 AM
 export const startCronJobs = () => {
-  cron.schedule('0 8 * * *', checkSyllabusDeadlines, {
+  cron.schedule('0 11 * * *', checkSyllabusDeadlines, {
     scheduled: true,
     timezone: "Asia/Kolkata"
   });
