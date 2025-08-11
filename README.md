@@ -17,7 +17,7 @@ The application provides a visual timeline for tracking progress, allowing facul
 
 The application is designed to understand structured syllabus documents like the one below. The AI can extract modules, topics, and lecture hours to build the schedule.
 
-![Sample Teaching Plan](https://storage.googleapis.com/project-media-3/llm-aux/generated/59a8c279-8812-42b7-a0f1-419b400d7202.png)
+![Sample Teaching Plan](https://github.com/Neha-Elizabeth-Thomas/HackNet/blob/main/DBMS%20syllabus.pdf)
 
 ## Technology Stack 🛠️
 
