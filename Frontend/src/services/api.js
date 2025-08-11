@@ -6,13 +6,4 @@ const api = axios.create({
   withCredentials: true, // ✅ Include credentials (cookies)
 });
 
-// Interceptor to add the JWT to every request if it exists
-api.interceptors.request.use((config) => {
-  const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-  if (userInfo && userInfo.token) {
-    config.headers.Authorization = `Bearer ${userInfo.token}`;
-  }
-  return config;
-});
-
 export default api;

@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import apiRoutes from './routes/index.js'; // Import the central router
 import { startCronJobs } from './services/cronService.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
@@ -21,6 +22,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json()); // Allows the server to accept JSON in the request body
+app.use(cookieParser()); // <-- Use the cookie-parser middleware
 
 // --- Database Connection ---
 mongoose.connect(process.env.MONGO_URI)

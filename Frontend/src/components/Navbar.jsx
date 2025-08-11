@@ -1,16 +1,24 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpenText, Cpu } from 'lucide-react'; // Modern, minimal icons
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { authUser, logout } = useAuth();
 
   const userInfo = JSON.parse(localStorage.getItem('userInfo'));
   const userName = userInfo ? userInfo.name : 'User';
 
-  const handleLogout = () => {
-    localStorage.removeItem('userInfo');
-    navigate('/login');
+  const handleLogout = async () => {
+            try {
+                await api.post('/auth/logout');
+                logout(); // Clear user state from context
+                navigate('/login');
+            } catch (error) {
+                console.error('Logout failed', error);
+            }
   };
 
   return (

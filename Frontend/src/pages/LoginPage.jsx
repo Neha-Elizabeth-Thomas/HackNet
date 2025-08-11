@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import AuthForm from '../components/AuthForm';
 import api from '../services/api';
 import { Brain } from 'lucide-react'; // modern icon
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -14,7 +16,7 @@ const LoginPage = () => {
     setError('');
     try {
       const { data } = await api.post('/auth/login', credentials);
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      login(data);
       navigate('/dashboard');
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed. Please try again.';

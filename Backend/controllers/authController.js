@@ -2,14 +2,17 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-/**
- * @description Generate JWT
- * @param {string} id The user ID to embed in the token
- */
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d', // Token will expire in 30 days
-  });
+const generateTokenAndSetCookie = (res, userId) => {
+    const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
+    });
+
+    res.cookie('jwt', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== 'development', // true in production
+      sameSite: process.env.NODE_ENV !== 'development' ? 'None' : 'strict', // 'None' in production
+      maxAge: 60 * 60 * 1000 // 7 days
+    });
 };
 
 /**
@@ -38,12 +41,12 @@ export const registerUser = async (req, res) => {
     });
 
     if (user) {
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token: generateToken(user._id),
-      });
+      generateTokenAndSetCookie(res, user._id);
+            res.status(201).json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+            });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
     }
@@ -66,12 +69,12 @@ export const loginUser = async (req, res) => {
 
     // Check if user exists and if the password matches
     if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token: generateToken(user._id),
-      });
+      generateTokenAndSetCookie(res, user._id);
+            res.json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+            });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -110,7 +113,9 @@ export const getUserProfile = async (req, res) => {
  * This endpoint is provided for completeness and can be used to blacklist tokens if needed.
  */
 export const logoutUser = (req, res) => {
-  // On the client, you will remove the JWT from local storage or cookies.
-  // The server doesn't need to do anything for a stateless JWT auth system.
-  res.status(200).json({ message: 'Logout successful. Please clear the token on the client.' });
+ res.cookie('jwt', '', {
+        httpOnly: true,
+        expires: new Date(0),
+    });
+ res.status(200).json({ message: 'Logout successful. Please clear the token on the client.' });
 };

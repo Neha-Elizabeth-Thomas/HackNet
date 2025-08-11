@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthForm from '../components/AuthForm';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { GraduationCap } from 'lucide-react';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,7 +23,7 @@ const RegisterPage = () => {
 
     try {
       const { data } = await api.post('/auth/register', credentials);
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      login(data);
       navigate('/dashboard');
     } catch (err) {
       const message = err.response?.data?.message || 'Registration failed. Please try again.';
