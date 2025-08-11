@@ -9,7 +9,10 @@ const app = express();
 
 // Middleware
 const corsOptions = {
-  origin: 'http://localhost:5173', // Your frontend's address
+  origin: [
+    'http://localhost:5173', // Your Vite dev server
+    'https://hack-net-ashy.vercel.app', // Production frontend
+  ], // Your frontend's address
   optionsSuccessStatus: 200 ,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
